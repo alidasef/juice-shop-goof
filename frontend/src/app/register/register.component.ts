@@ -63,26 +63,44 @@ export class RegisterComponent implements OnInit {
     }
 
     this.userService.save(user).subscribe((response: any) => {
-      this.securityAnswerService.save({
-        UserId: response.id,
-        answer: this.securityAnswerControl.value,
-        SecurityQuestionId: this.securityQuestionControl.value
-      }).subscribe(() => {
-        this.ngZone.run(async () => await this.router.navigate(['/login']))
-        this.snackBarHelperService.open('CONFIRM_REGISTER')
+      // Login the user first to get authentication token
+      this.userService.login({
+        email: this.emailControl.value,
+        password: this.passwordControl.value
+      }).subscribe((authentication: any) => {
+        // Store the authentication token
+        localStorage.setItem('token', authentication.token)
+        // Now create the security answer with authentication
+        this.securityAnswerService.save({
+          answer: this.securityAnswerControl.value,
+          SecurityQuestionId: this.securityQuestionControl.value
+        }).subscribe(() => {
+          this.ngZone.run(async () => await this.router.navigate(['/login']))
+          this.snackBarHelperService.open('CONFIRM_REGISTER')
+        }, (err) => {
+          console.log(err)
+          this.handleError(err)
+        })
+      }, (err) => {
+        console.log(err)
+        this.handleError(err)
       })
     }, (err) => {
       console.log(err)
-      if (err.error?.errors) {
-        const error = err.error.errors[0]
-        if (error.message) {
-          // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-          this.error = error.message[0].toUpperCase() + error.message.slice(1)
-        } else {
-          this.error = error
-        }
-      }
+      this.handleError(err)
     })
+  }
+
+  private handleError (err: any) {
+    if (err.error?.errors) {
+      const error = err.error.errors[0]
+      if (error.message) {
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+        this.error = error.message[0].toUpperCase() + error.message.slice(1)
+      } else {
+        this.error = error
+      }
+    }
   }
 }
 
