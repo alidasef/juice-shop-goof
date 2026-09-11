@@ -41,8 +41,9 @@ describe('RegisterComponent', () => {
     securityAnswerService.save.and.returnValue(of({}))
     securityQuestionService = jasmine.createSpyObj('SecurityQuestionService', ['find'])
     securityQuestionService.find.and.returnValue(of([{}]))
-    userService = jasmine.createSpyObj('UserService', ['save'])
+    userService = jasmine.createSpyObj('UserService', ['save', 'login'])
     userService.save.and.returnValue(of({}))
+    userService.login.and.returnValue(of({ token: 'test-token' }))
     TestBed.configureTestingModule({
       imports: [
         RouterTestingModule.withRoutes([
@@ -143,6 +144,7 @@ describe('RegisterComponent', () => {
 
   it('redirects to login page after user registration', fakeAsync(() => {
     userService.save.and.returnValue(of({ id: 1, question: 'Wat is?' }))
+    userService.login = jasmine.createSpy('login').and.returnValue(of({ token: 'test-token' }))
     securityAnswerService.save.and.returnValue(of({}))
     component.securityQuestions = [{ id: 1, question: 'Wat is?' }]
     component.emailControl.setValue('x@x.xx')
@@ -151,10 +153,11 @@ describe('RegisterComponent', () => {
     component.securityQuestionControl.setValue(1)
     component.securityAnswerControl.setValue('Answer')
     const user = { email: 'x@x.xx', password: 'password', passwordRepeat: 'password', securityQuestion: { id: 1, question: 'Wat is?' }, securityAnswer: 'Answer' }
-    const securityAnswerObject = { UserId: 1, answer: 'Answer', SecurityQuestionId: 1 }
+    const securityAnswerObject = { answer: 'Answer', SecurityQuestionId: 1 }
     component.save()
     tick()
     expect(userService.save.calls.argsFor(0)[0]).toEqual(user)
+    expect(userService.login.calls.argsFor(0)[0]).toEqual({ email: 'x@x.xx', password: 'password' })
     expect(securityAnswerService.save.calls.argsFor(0)[0]).toEqual(securityAnswerObject)
     expect(location.path()).toBe('/login')
     fixture.destroy()
